@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Walk & Earn — EarnZoner</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+:root{
+  --bg:#0b0b0b; --panel:#121212; --muted:#9aa0a6; --accent:#ff3b30; --gold:#ffc107; --glass: rgba(255,255,255,0.03);
+}
+*{box-sizing:border-box;font-family:Inter,Roboto,system-ui,-apple-system,Segoe UI,Arial;color:#fff;}
+body{margin:0;background:linear-gradient(180deg,var(--bg),#050505);min-height:100vh;padding:18px;display:flex;flex-direction:column;align-items:center;}
+header{width:100%;max-width:980px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font-size:20px;color:var(--accent);margin:0}
+.stats{display:flex;gap:12px}
+.card{background:var(--panel);padding:12px 16px;border-radius:10px;min-width:110px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.5)}
+.card h2{font-size:18px;margin:0;color:var(--gold)}
+.card p{color:var(--muted);font-size:13px;margin:6px 0 0}
+main{width:100%;max-width:980px;display:flex;gap:14px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.panel{background:var(--panel);border-radius:12px;padding:16px;width:100%;box-shadow:0 6px 24px rgba(0,0,0,0.6)}
+.left{flex:1;min-width:320px;max-width:620px}
+.right{width:320px;min-width:280px}
+.player{display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent)}
+.controls{display:flex;align-items:center;gap:12px}
+.big-btn{width:72px;height:72px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.status{color:var(--muted);font-size:13px}
+.task-area{margin-top:12px;padding:12px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02)}
+adsgram-task{display:block;margin-top:8px;--adsgram-task-button-width:100%;--adsgram-task-font-size:15px}
+.btn{padding:10px 12px;border-radius:10px;border:none;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+.compact{padding:12px;border-radius:10px;background:linear-gradient(180deg,#0f0f0f,#0b0b0b)}
+.compact h4{margin:0 0 8px 0;color:var(--gold)}
+.small{font-size:13px;color:var(--muted)}
+.drawer{position:fixed;right:18px;bottom:18px;background:var(--panel);padding:14px;border-radius:12px;width:320px;box-shadow:0 10px 40px rgba(0,0,0,0.6);display:none}
+input, select, textarea{width:100%;padding:8px;border-radius:8px;border:none;background:#0a0a0a;color:#fff;margin-bottom:8px}
+.requests{max-height:240px;overflow:auto;margin-top:8px;border-top:1px dashed rgba(255,255,255,0.02);padding-top:8px}
+footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
+.claim-big{display:none;margin-top:12px;padding:14px;border-radius:12px;background:linear-gradient(90deg,var(--accent),#ff5a4b);color:#fff;border:none;font-weight:700;font-size:16px;cursor:pointer}
+@media (max-width:900px){main{flex-direction:column;align-items:center} .right{width:100%;max-width:520px}}
+
+/* Full-page Join Overlay */
+#joinOverlay {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.95);
+  z-index:9999;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+#joinOverlay button{
+  padding:16px 28px;
+  font-size:18px;
+  font-weight:bold;
+  border:none;
+  border-radius:12px;
+  background:var(--accent);
+  color:#fff;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+<header>
+<h1>Walk & Earn</h1>
+<div class="stats">
+  <div class="card"><h2 id="points">0</h2><p>Points</p></div>
+  <div class="card"><h2 id="walkEnergy">0</h2><p>Walk Energy</p></div>
+</div>
+</header>
+
+<main>
+<div class="panel left">
+  <div class="player">
+    <div class="status" id="status">Start walking to earn points</div>
+    <div class="task-area">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <strong>Tasks & Reward Ads</strong>
+          <div class="small muted">Earn +10 walk energy per task/ad</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="taskButton" class="btn primary">Task & Earn</button>
+        <button id="rewardButton" class="btn primary">Watch Reward</button>
+      </div>
+      <div id="adsWrapper" style="display:none; margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel right">
+  <div class="compact">
+    <h4>Your Referral</h4>
+    <div class="small">Your ID: <strong id="userIdDisplay">-</strong></div>
+    <div class="small">Referrer: <strong id="referrerDisplay">-</strong></div>
+    <div style="margin-top:8px">
+      <div class="small">Referral bonus: <strong>20%</strong> of referral earnings</div>
+    </div>
+  </div>
+  <div class="compact" style="margin-top:12px">
+    <div id="requests" class="requests"></div>
+  </div>
+</div>
+</main>
+
+<footer><div class="small">Tip: Walk to convert energy into points. Complete tasks or watch reward ads to earn more energy.</div></footer>
+
+<div class="drawer" id="drawer">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong>Withdraw (min 1000 points)</strong>
+    <button id="closeDrawer" class="btn ghost"><i class="fa fa-xmark"></i></button>
+  </div>
+
+  <label>Amount (points)</label>
+  <input id="wdAmount" type="number" min="1000" step="1" />
+
+  <label>Method</label>
+  <select id="wdMethod">
+    <option value="bank">Bank Transfer</option>
+    <option value="binance">Binance</option>
+    <option value="litecoin">Litecoin</option>
+  </select>
+
+  <label>Details (wallet/account)</label>
+  <textarea id="wdDetails" rows="3" placeholder="Enter account info"></textarea>
+
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button id="submitWd" class="btn primary">Send Request</button>
+    <button id="cancelWd" class="btn ghost">Cancel</button>
+  </div>
+</div>
+
+<!-- Join Overlay -->
+<div id="joinOverlay">
+  <h2 style="margin-bottom:16px;">🚫 You must join our channel to continue</h2>
+  <button onclick="joinAndContinue()">👉 Join Telegram Channel</button>
+</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+
+const TASK_BLOCKS = ["task-35775","task-23551","task-34531"];
+const REWARD_BLOCKS = ["23675","56987"];
+const POINTS_PER_TASK = 90; // 100 walk energy -> 90 points
+const WALK_ENERGY_PER_TASK = 10;
+const MIN_WITHDRAW = 1000;
+
+let points = parseInt(localStorage.getItem("points")||0);
+let walkEnergy = parseInt(localStorage.getItem("walkEnergy")||0);
+let isWalking = false;
+
+const pointsEl = document.getElementById("points");
+const walkEl = document.getElementById("walkEnergy");
+const taskButton = document.getElementById("taskButton");
+const rewardButton = document.getElementById("rewardButton");
+const drawer = document.getElementById("drawer");
+
+function saveAll(){
+  localStorage.setItem("points", points);
+  localStorage.setItem("walkEnergy", walkEnergy);
+}
+
+function updateUI(){
+  pointsEl.textContent = points;
+  walkEl.textContent = walkEnergy;
+}
+
+// Convert walk energy to points while walking
+setInterval(()=>{
+  if(isWalking && walkEnergy > 0){
+    let converted = Math.floor(walkEnergy/100) * POINTS_PER_TASK;
+    if(converted > 0){
+      points += converted;
+      walkEnergy -= Math.floor(walkEnergy/100)*100;
+      saveAll();
+      updateUI();
+    }
+  }
+}, 5000);
+
+// Task button
+taskButton.addEventListener("click",()=>{
+  const blockId = TASK_BLOCKS[Math.floor(Math.random()*TASK_BLOCKS.length)];
+  const el = document.createElement("adsgram-task");
+  el.setAttribute("data-block-id", blockId);
+  el.addEventListener("reward",()=>{
+    walkEnergy += WALK_ENERGY_PER_TASK;
+    saveAll();
+    updateUI();
+  });
+  document.getElementById("adsWrapper").innerHTML = "";
+  document.getElementById("adsWrapper").appendChild(el);
+  document.getElementById("adsWrapper").style.display = "block";
+  if(typeof el.load === "function") el.load();
+});
+
+// Reward button
+rewardButton.addEventListener("click",()=>{
+  const blockId = REWARD_BLOCKS[Math.floor(Math.random()*REWARD_BLOCKS.length)];
+  const ad = window.Adsgram.init({blockId:blockId});
+  ad.show().then(res=>{
+    if(res.done){ walkEnergy += WALK_ENERGY_PER_TASK; saveAll(); updateUI(); }
+  }).catch(err=>console.log(err));
+});
+
+// Preload reward ad + join channel overlay
+document.addEventListener("DOMContentLoaded",()=>{
+  const preloadAd = window.Adsgram.init({blockId:REWARD_BLOCKS[Math.floor(Math.random()*REWARD_BLOCKS.length)]});
+  preloadAd.show().then(res=>{
+    if(res.done){ walkEnergy += WALK_ENERGY_PER_TASK; saveAll(); updateUI(); }
+    document.getElementById("joinOverlay").style.display = "flex";
+  }).catch(err=>{
+    document.getElementById("joinOverlay").style.display = "flex";
+  });
+});
+
+function joinAndContinue(){
+  window.open("https://t.me/EarnZoner","_blank");
+  if(!localStorage.getItem("joinedRewardGiven")){
+    walkEnergy += WALK_ENERGY_PER_TASK;
+    saveAll(); updateUI();
+    localStorage.setItem("joinedRewardGiven","yes");
+    alert("🎉 Thanks for joining! +10 walk energy");
+  }
+  document.getElementById("joinOverlay").style.display="none";
+}
+
+// Withdraw
+document.getElementById("withdrawOpen").addEventListener("click",()=>drawer.style.display="block");
+document.getElementById("closeDrawer").addEventListener("click",()=>drawer.style.display="none");
+document.getElementById("cancelWd").addEventListener("click",()=>drawer.style.display="none");
+document.getElementById("submitWd").addEventListener("click",()=>{
+  const amount=parseInt(document.getElementById("wdAmount").value);
+  const method=document.getElementById("wdMethod").value;
+  const details=document.getElementById("wdDetails").value.trim();
+  if(!amount||amount<MIN_WITHDRAW)return tg.showAlert("❌ Minimum withdraw is 1000 points.");
+  if(amount>points)return tg.showAlert("❌ Not enough points.");
+  if(!details)return tg.showAlert("❌ Please enter wallet/account info.");
+
+  points -= amount;
+  walkEnergy = 0;
+  saveAll();
+  updateUI();
+
+  const msg=`📤 *Withdraw Request*\n👤 User ID: ${tg.initDataUnsafe?.user?.id}\n💰 Amount: ${amount} points\n🏦 Method: ${method.toUpperCase()}\n🔗 Wallet/Account: ${details}\n⭐ Remaining Walk Energy: ${walkEnergy}\n⭐ Remaining Points: ${points}`;
+  Api.sendMessage({chat_id:6136849497,text:msg,parse_mode:"Markdown"});
+  tg.showAlert("✅ Withdraw request sent!");
+  drawer.style.display="none";
+});
+
+// Referral
+document.getElementById("userIdDisplay").textContent = tg.initDataUnsafe?.user?.id || "-";
+</script>
+</body>
+</html>
