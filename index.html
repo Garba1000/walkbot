@@ -11,10 +11,10 @@
 
 <style>
 :root{
-  --bg:#1c1c2b; /* Unique background color */
+  --bg:#1c1c2b;
   --panel:#27273a;
   --muted:#c0c0c0;
-  --accent:#ff6f61;
+  --accent:#28a745; /* changed red to green */
   --gold:#ffc107;
   --glass: rgba(255,255,255,0.03);
 }
@@ -46,10 +46,9 @@ adsgram-task{display:block;margin-top:8px;--adsgram-task-button-width:100%;--ads
 input, select, textarea{width:100%;padding:8px;border-radius:8px;border:none;background:#0a0a0a;color:#fff;margin-bottom:8px}
 .requests{max-height:240px;overflow:auto;margin-top:8px;border-top:1px dashed rgba(255,255,255,0.02);padding-top:8px}
 footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
-.claim-big{display:none;margin-top:12px;padding:14px;border-radius:12px;background:linear-gradient(90deg,var(--accent),#ff5a4b);color:#fff;border:none;font-weight:700;font-size:16px;cursor:pointer}
+.claim-big{display:none;margin-top:12px;padding:14px;border-radius:12px;background:linear-gradient(90deg,var(--accent),#28a745);color:#fff;border:none;font-weight:700;font-size:16px;cursor:pointer}
 @media (max-width:900px){main{flex-direction:column;align-items:center} .right{width:100%;max-width:520px}}
 
-/* Full-page Join Overlay */
 #joinOverlay {
   position:fixed; top:0; left:0; width:100%; height:100%;
   background:rgba(0,0,0,0.95);
@@ -97,6 +96,7 @@ footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
         </div>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="startWalking" class="btn primary">Start Walking Now</button>
         <button id="taskButton" class="btn primary">Task & Earn</button>
         <button id="rewardButton" class="btn primary">Watch Reward</button>
       </div>
@@ -147,7 +147,6 @@ footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
   </div>
 </div>
 
-<!-- Join Overlay -->
 <div id="joinOverlay">
   <h2 style="margin-bottom:16px;">🚫 You must join our channel to continue</h2>
   <button onclick="joinAndContinue()">👉 Join Telegram Channel</button>
@@ -159,7 +158,7 @@ tg.ready();
 
 const TASK_BLOCKS = ["task-35775","task-23551","task-34531"];
 const REWARD_BLOCKS = ["22679","22680"];
-const POINTS_PER_TASK = 90; // 100 walk energy -> 90 points
+const POINTS_PER_TASK = 90;
 const WALK_ENERGY_PER_TASK = 10;
 const MIN_WITHDRAW = 1000;
 
@@ -169,17 +168,17 @@ let isWalking = false;
 
 const pointsEl = document.getElementById("points");
 const walkEl = document.getElementById("walkEnergy");
+const startWalkingBtn = document.getElementById("startWalking");
 const taskButton = document.getElementById("taskButton");
 const rewardButton = document.getElementById("rewardButton");
 const drawer = document.getElementById("drawer");
 
-// Save & UI
 function saveAll(){ localStorage.setItem("points", points); localStorage.setItem("walkEnergy", walkEnergy);}
 function updateUI(){ pointsEl.textContent = points; walkEl.textContent = walkEnergy; }
 
-// Convert walk energy to points while walking
+// Convert walk energy to points automatically
 setInterval(()=>{
-  if(isWalking && walkEnergy > 0){
+  if(walkEnergy > 0){
     let converted = Math.floor(walkEnergy/100) * POINTS_PER_TASK;
     if(converted > 0){
       points += converted;
@@ -189,6 +188,24 @@ setInterval(()=>{
     }
   }
 }, 5000);
+
+// Start Walking Button
+startWalkingBtn.addEventListener("click",()=>{
+  isWalking = true;
+  document.getElementById("status").textContent = "🚶 Walking... Energy converting automatically!";
+  const blockId = TASK_BLOCKS[Math.floor(Math.random()*TASK_BLOCKS.length)];
+  const el = document.createElement("adsgram-task");
+  el.setAttribute("data-block-id", blockId);
+  el.addEventListener("reward",()=>{
+    walkEnergy += WALK_ENERGY_PER_TASK;
+    saveAll();
+    updateUI();
+  });
+  document.getElementById("adsWrapper").innerHTML = "";
+  document.getElementById("adsWrapper").appendChild(el);
+  document.getElementById("adsWrapper").style.display = "block";
+  if(typeof el.load === "function") el.load();
+});
 
 // Task button
 taskButton.addEventListener("click",()=>{
@@ -215,7 +232,7 @@ rewardButton.addEventListener("click",()=>{
   }).catch(err=>console.log(err));
 });
 
-// Preload reward ad + join channel overlay
+// Preload reward ad + join overlay
 document.addEventListener("DOMContentLoaded",()=>{
   const preloadAd = window.Adsgram.init({blockId:REWARD_BLOCKS[Math.floor(Math.random()*REWARD_BLOCKS.length)]});
   preloadAd.show().then(res=>{
