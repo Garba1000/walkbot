@@ -11,10 +11,15 @@
 
 <style>
 :root{
-  --bg:#0b0b0b; --panel:#121212; --muted:#9aa0a6; --accent:#ff3b30; --gold:#ffc107; --glass: rgba(255,255,255,0.03);
+  --bg:#1c1c2b; /* Unique background color */
+  --panel:#27273a;
+  --muted:#c0c0c0;
+  --accent:#ff6f61;
+  --gold:#ffc107;
+  --glass: rgba(255,255,255,0.03);
 }
 *{box-sizing:border-box;font-family:Inter,Roboto,system-ui,-apple-system,Segoe UI,Arial;color:#fff;}
-body{margin:0;background:linear-gradient(180deg,var(--bg),#050505);min-height:100vh;padding:18px;display:flex;flex-direction:column;align-items:center;}
+body{margin:0;background:linear-gradient(180deg,var(--bg),#14142b);min-height:100vh;padding:18px;display:flex;flex-direction:column;align-items:center;}
 header{width:100%;max-width:980px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
 h1{font-size:20px;color:var(--accent);margin:0}
 .stats{display:flex;gap:12px}
@@ -28,13 +33,13 @@ main{width:100%;max-width:980px;display:flex;gap:14px;align-items:flex-start;jus
 .player{display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent)}
 .controls{display:flex;align-items:center;gap:12px}
 .big-btn{width:72px;height:72px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.status{color:var(--muted);font-size:13px}
+.status{color:var(--muted);font-size:13px;text-align:center;}
 .task-area{margin-top:12px;padding:12px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02)}
 adsgram-task{display:block;margin-top:8px;--adsgram-task-button-width:100%;--adsgram-task-font-size:15px}
 .btn{padding:10px 12px;border-radius:10px;border:none;cursor:pointer}
 .btn.primary{background:var(--accent);color:#fff}
 .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-.compact{padding:12px;border-radius:10px;background:linear-gradient(180deg,#0f0f0f,#0b0b0b)}
+.compact{padding:12px;border-radius:10px;background:linear-gradient(180deg,#2a2a3d,#1c1c2b)}
 .compact h4{margin:0 0 8px 0;color:var(--gold)}
 .small{font-size:13px;color:var(--muted)}
 .drawer{position:fixed;right:18px;bottom:18px;background:var(--panel);padding:14px;border-radius:12px;width:320px;box-shadow:0 10px 40px rgba(0,0,0,0.6);display:none}
@@ -86,6 +91,10 @@ footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
           <strong>Tasks & Reward Ads</strong>
           <div class="small muted">Earn +10 walk energy per task/ad</div>
         </div>
+        <div style="display:flex;gap:8px">
+          <button id="copyReferral" class="btn ghost">Copy Referral</button>
+          <button id="withdrawOpen" class="btn primary">Withdraw</button>
+        </div>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px">
         <button id="taskButton" class="btn primary">Task & Earn</button>
@@ -102,7 +111,7 @@ footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
     <div class="small">Your ID: <strong id="userIdDisplay">-</strong></div>
     <div class="small">Referrer: <strong id="referrerDisplay">-</strong></div>
     <div style="margin-top:8px">
-      <div class="small">Referral bonus: <strong>20%</strong> of referral earnings</div>
+      <div class="small">Referral bonus: <strong>40%</strong> of referral earnings</div>
     </div>
   </div>
   <div class="compact" style="margin-top:12px">
@@ -164,15 +173,9 @@ const taskButton = document.getElementById("taskButton");
 const rewardButton = document.getElementById("rewardButton");
 const drawer = document.getElementById("drawer");
 
-function saveAll(){
-  localStorage.setItem("points", points);
-  localStorage.setItem("walkEnergy", walkEnergy);
-}
-
-function updateUI(){
-  pointsEl.textContent = points;
-  walkEl.textContent = walkEnergy;
-}
+// Save & UI
+function saveAll(){ localStorage.setItem("points", points); localStorage.setItem("walkEnergy", walkEnergy);}
+function updateUI(){ pointsEl.textContent = points; walkEl.textContent = walkEnergy; }
 
 // Convert walk energy to points while walking
 setInterval(()=>{
@@ -259,6 +262,11 @@ document.getElementById("submitWd").addEventListener("click",()=>{
 
 // Referral
 document.getElementById("userIdDisplay").textContent = tg.initDataUnsafe?.user?.id || "-";
+document.getElementById("copyReferral").addEventListener("click",()=>{
+  const uid=tg.initDataUnsafe?.user?.id||"unknown";
+  navigator.clipboard.writeText(`https://t.me/EarnZoner?start=${uid}`);
+  tg.showAlert("✅ Referral link copied!");
+});
 </script>
 </body>
 </html>
