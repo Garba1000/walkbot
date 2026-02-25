@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Scratch & Earn</title>
+<title>Tap & Earn</title>
 
 <style>
 body {
@@ -15,37 +15,27 @@ body {
 }
 h1, h2 { margin-bottom: 10px; }
 .section { margin-top: 20px; padding: 15px; background: #111; border-radius: 10px; }
+
 .btn {
   display: inline-block;
   margin-top: 10px;
   padding: 10px 15px;
   border-radius: 8px;
-  background: #4CAF50; /* green buttons */
+  background: #28a745; /* GREEN */
   color: #fff;
   font-weight: bold;
   cursor: pointer;
   text-align: center;
 }
 .btn:active { transform: scale(0.95); }
+
 .hidden { display: none; }
+
 input, select {
   padding: 8px; margin: 5px 0; width: 100%; border-radius: 5px; border: none;
 }
-#joinPopup {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.95);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  text-align: center;
-  padding: 20px;
-  z-index: 9999;
-}
-#joinPopup button { background: #4CAF50; color: #fff; padding: 12px 20px; margin-top: 20px; border: none; border-radius: 10px; font-weight: bold; font-size: 18px; cursor: pointer; }
-canvas { border-radius: 10px; display: block; margin: 10px auto; }
+
+canvas { border-radius: 10px; }
 </style>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -54,42 +44,36 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
 
 <body>
 
-<div id="joinPopup">
-  <h2>📢 Join Our Telegram Channel to Continue</h2>
-  <p>You must join before using the app.</p>
-  <button onclick="joinChannelClicked()">👉 Join @earnzoners</button>
-</div>
-
-<div id="mainPage" style="display:none;">
-
-<h1>⚡ Scratch & Earn Points</h1>
-
+<h1>⚡ Tap & Earn point</h1>
 <p>Points: <span id="points">0</span></p>
-
-<!-- Scratch Section -->
-<div class="section" id="scratchSection">
-  <canvas id="scratchCanvas" width="300" height="200" style="background:#555;"></canvas>
-  <p id="scratchMsg">Start scratching to earn points!</p>
-  <div class="btn hidden" id="claimBtn">Click this button now to claim 3000 reward points</div>
-</div>
 
 <div class="section">
 <h2>📋 Tasks</h2>
-<div id="taskIntro">
-  <div class="btn" id="startTasksBtn">Start Tasks</div>
+<div id="adsgram-container"></div>
 </div>
-<div id="adsgram-container" class="hidden"></div>
-<div id="nextTaskBtnContainer" class="hidden">
-  <div class="btn" id="nextTaskBtn">➡️ Next Task</div>
+
+<div class="section">
+<h2>🎟 Scratch & Earn</h2>
+
+<div style="background:#333; border-radius:10px; height:20px; width:100%; margin-bottom:10px;">
+  <div id="scratchProgressBar" style="background:#28a745; height:100%; width:0%; border-radius:10px;"></div>
 </div>
-<div id="finalTaskBtnContainer" class="hidden">
-  <div class="btn" id="finalTaskBtn">🏁 Finish Tasks</div>
+
+<canvas id="scratchCanvas" width="300" height="200" style="background:#555;"></canvas>
+<p id="scratchMsg">Start scratching to earn!</p>
+
+<div class="btn hidden" id="claimBtn">
+Click this button now to claim the 3000 reward points
 </div>
+
+<div id="claimTaskContainer" class="hidden"></div>
+
 </div>
 
 <div class="section">
 <h2>💳 Withdraw</h2>
 <p><b>Minimum withdrawal is 250,000 points ($60)</b></p>
+
 <label>Method:</label>
 <select id="method">
 <option value="Litecoin">Litecoin</option>
@@ -97,25 +81,18 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
 <option value="Payeer">Payeer</option>
 <option value="Bank">Bank Account</option>
 </select>
+
 <label>Wallet/Account:</label>
 <input type="text" id="address" placeholder="Enter wallet or account"/>
+
 <label>Amount:</label>
 <input type="number" id="amount" placeholder="Minimum 250000"/>
+
 <div class="btn" id="withdrawBtn">Request Withdraw</div>
-</div>
-
-<div class="section">
-<h2>👥 Referral Program</h2>
-<p>Your referral link:</p>
-<input type="text" id="refLink" readonly/>
-<div class="btn" id="copyRefBtn">Copy Link</div>
-</div>
-
 </div>
 
 <script>
 const webApp = Telegram.WebApp;
-
 let points = parseInt(localStorage.getItem("points") || "0");
 
 function updateUI(){
@@ -124,160 +101,21 @@ function updateUI(){
 function saveState(){
   localStorage.setItem("points", points);
 }
-
-/* JOIN */
-function joinChannelClicked(){
-  window.open("https://t.me/crytocurrentupdate","_blank");
-  document.getElementById("joinPopup").style.display="none";
-  document.getElementById("mainPage").style.display="block";
-}
-
-/* Show Ad before Join */
-function showJoinPopupAfterAds(){
-  try{
-    const rewardAd = window.Adsgram.init({blockId:"21545"});
-    rewardAd.show().finally(()=>{
-      document.getElementById("joinPopup").style.display="flex";
-    });
-  }catch(e){
-    document.getElementById("joinPopup").style.display="flex";
-  }
-}
-
-/* SCRATCH & EARN */
-const canvas = document.getElementById("scratchCanvas");
-const ctx = canvas.getContext("2d");
-let scratching = false;
-let scratchProgress = 0;
-const scratchMsg = document.getElementById("scratchMsg");
-ctx.fillStyle = "#888";
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-function startScratch(e){ scratching = true; }
-function stopScratch(e){ scratching = false; }
-function scratch(e){
-  if(!scratching) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-  const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-  ctx.clearRect(x-15, y-15, 30, 30);
-  scratchProgress += 0.3;
-  handleScratchProgress();
-}
-
-canvas.addEventListener("mousedown", startScratch);
-canvas.addEventListener("mouseup", stopScratch);
-canvas.addEventListener("mousemove", scratch);
-canvas.addEventListener("touchstart", startScratch);
-canvas.addEventListener("touchend", stopScratch);
-canvas.addEventListener("touchmove", scratch);
-
-let adShown = [false,false,false];
-const claimBtn = document.getElementById("claimBtn");
-
-function handleScratchProgress(){
-  if(scratchProgress >= 3 && !adShown[0]){
-    adShown[0] = true;
-    scratchMsg.innerText = "⚡ Keep going, almost there!";
-    showAdsgram(21545, "⚡ Keep going!");
-  }
-  if(scratchProgress >= 20 && !adShown[1]){
-    adShown[1] = true;
-    scratchMsg.innerText = "🔥 Great! Keep scratching!";
-    showAdsgram(21546, "🔥 Keep going!");
-  }
-  if(scratchProgress >= 60 && !adShown[2]){
-    adShown[2] = true;
-    scratchMsg.innerText = "🎉 Scratch finished!";
-    claimBtn.classList.remove("hidden");
-  }
-}
-
-claimBtn.addEventListener("click",()=>{
-  claimBtn.classList.add("hidden");
-  try{
-    const rewardAd = window.Adsgram.init({blockId: 21547});
-    rewardAd.show().then(res=>{
-      if(res.done){
-        points += 3000;
-        saveState();
-        updateUI();
-        scratchMsg.innerText = "✅ You're successful! You received 3000 points bonus from Scratch & Earn.";
-        resetScratch();
-      }
-    });
-  }catch(e){}
-});
-
-function showAdsgram(blockId, msg){
-  scratchMsg.innerText = msg;
-  try{
-    const rewardAd = window.Adsgram.init({blockId:blockId});
-    rewardAd.show().then(res=>{
-      if(res.done){
-        scratchMsg.innerText = msg + " ✅";
-      }
-    });
-  }catch(e){}
-}
-
-function resetScratch(){
-  scratchProgress = 0;
-  adShown = [false,false,false];
-  ctx.fillStyle = "#888";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-}
+updateUI();
 
 /* TASK SYSTEM */
-let currentTaskIndex=0;
-const taskIds=["task-21546","task-21547","task-21548","task-21549","task-21550","task-21551"];
+const taskIds=["21546","21547","21548","21549","21550","21551"];
+const taskContainer=document.getElementById("adsgram-container");
 
-function loadTask(blockId){
-  const container=document.getElementById("adsgram-container");
-  container.innerHTML=`<adsgram-task class="task" data-block-id="${blockId}"></adsgram-task>`;
-  container.classList.remove("hidden");
-  document.getElementById("taskIntro").classList.add("hidden");
-
-  const task=container.querySelector(".task");
-  task.addEventListener("reward",(e)=>{
-    points += 100; // reward 100 points per task
+taskIds.forEach(id=>{
+  const task=document.createElement("adsgram-task");
+  task.setAttribute("data-block-id",id);
+  task.addEventListener("reward",()=>{
+    points+=100;
     saveState();
     updateUI();
-
-    if(currentTaskIndex<taskIds.length-1){
-      document.getElementById("nextTaskBtnContainer").classList.remove("hidden");
-    }else{
-      document.getElementById("finalTaskBtnContainer").classList.remove("hidden");
-    }
   });
-}
-
-document.getElementById("startTasksBtn").addEventListener("click",()=>{
-  currentTaskIndex=0;
-  loadTask(taskIds[currentTaskIndex]);
-});
-
-document.getElementById("nextTaskBtn").addEventListener("click",()=>{
-  currentTaskIndex++;
-  document.getElementById("nextTaskBtnContainer").classList.add("hidden");
-  loadTask(taskIds[currentTaskIndex]);
-});
-
-document.getElementById("finalTaskBtn").addEventListener("click",()=>{
-  try{
-    const rewardAd=window.Adsgram.init({blockId:"23578"});
-    rewardAd.show().then(res=>{
-      if(res.done){
-        points += 100; // reward 100 points for final task
-        saveState();
-        updateUI();
-      }
-      document.getElementById("taskIntro").classList.remove("hidden");
-      document.getElementById("adsgram-container").classList.add("hidden");
-      document.getElementById("finalTaskBtnContainer").classList.add("hidden");
-      currentTaskIndex=0;
-    });
-  }catch(e){}
+  taskContainer.appendChild(task);
 });
 
 /* WITHDRAW */
@@ -312,19 +150,72 @@ document.getElementById("withdrawBtn").addEventListener("click",()=>{
   alert("✅ Withdrawal request sent!");
 });
 
-/* REFERRAL */
-const user=webApp.initDataUnsafe.user||{};
-const userId=user.id||"guest";
-document.getElementById("refLink").value=`https://t.me/Tapancebot?start=${userId}`;
-document.getElementById("copyRefBtn").addEventListener("click",()=>{
-  const refInput=document.getElementById("refLink");
-  refInput.select();
-  document.execCommand("copy");
+/* SCRATCH SYSTEM */
+const canvas=document.getElementById("scratchCanvas");
+const ctx=canvas.getContext("2d");
+ctx.fillStyle="#999";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+let scratchProgress=0;
+let adShown=[false,false,false];
+let scratching=false;
+
+canvas.addEventListener("mousedown",()=>scratching=true);
+canvas.addEventListener("mouseup",()=>scratching=false);
+canvas.addEventListener("mousemove",(e)=>{
+  if(!scratching) return;
+  const rect=canvas.getBoundingClientRect();
+  const x=e.clientX-rect.left;
+  const y=e.clientY-rect.top;
+  ctx.clearRect(x-15,y-15,30,30);
+  scratchProgress++;
+  handleScratchProgress();
 });
 
-document.addEventListener("DOMContentLoaded",()=>{
-  updateUI();
-  showJoinPopupAfterAds();
+function handleScratchProgress(){
+  const percent=Math.min(scratchProgress,60)/60*100;
+  document.getElementById("scratchProgressBar").style.width=percent+"%";
+
+  if(scratchProgress>=3&&!adShown[0]){
+    adShown[0]=true;
+    showAdsgram("21545");
+  }
+  if(scratchProgress>=20&&!adShown[1]){
+    adShown[1]=true;
+    showAdsgram("21546");
+  }
+  if(scratchProgress>=60&&!adShown[2]){
+    adShown[2]=true;
+    document.getElementById("claimBtn").classList.remove("hidden");
+  }
+}
+
+function showAdsgram(id){
+  try{
+    const ad=window.Adsgram.init({blockId:id});
+    ad.show();
+  }catch(e){}
+}
+
+/* CLAIM 3000 */
+document.getElementById("claimBtn").addEventListener("click",()=>{
+  const container=document.getElementById("claimTaskContainer");
+  container.innerHTML=`<adsgram-task data-block-id="23578"></adsgram-task>`;
+  container.classList.remove("hidden");
+
+  const task=container.querySelector("adsgram-task");
+  task.addEventListener("reward",()=>{
+    points+=3000;
+    saveState();
+    updateUI();
+    alert("🎉 You're successful receive 3000 point bonus from scratch and earn!");
+    container.classList.add("hidden");
+    document.getElementById("claimBtn").classList.add("hidden");
+    scratchProgress=0;
+    document.getElementById("scratchProgressBar").style.width="0%";
+    ctx.fillStyle="#999";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  });
 });
 </script>
 
