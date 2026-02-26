@@ -60,7 +60,7 @@ input, select {
   cursor: pointer;
 }
 
-canvas { border-radius: 10px; display: block; margin: 10px auto; }
+canvas { border-radius: 10px; display: block; margin: 10px auto; touch-action: none; }
 </style>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -168,8 +168,8 @@ function startScratch(){
     scratchTimerStarted = true;
     scratchMsg.innerText = "⏳ Claim available in 4 minutes";
 
-    // Automatically preload and show Adsgram 6 times
-    preloadAdsBeforeClaim();
+    // Automatically preload and show Adsgram 6 times every 30 sec
+    showAdsEvery30Sec();
 
     setTimeout(()=>{
       claimAvailable = true;
@@ -179,26 +179,21 @@ function startScratch(){
   }
 }
 
-function preloadAdsBeforeClaim(){
+function showAdsEvery30Sec(){
   adsShownBeforeClaim = 0;
 
-  function showAdSequentially(){
-    if(adsShownBeforeClaim >= 6) return;
-
+  const adInterval = setInterval(()=>{
+    if(adsShownBeforeClaim >= 6){
+      clearInterval(adInterval);
+      return;
+    }
     try{
       const randomBlock = rewardBlocks[Math.floor(Math.random()*rewardBlocks.length)];
       const rewardAd = window.Adsgram.init({blockId: randomBlock});
-      rewardAd.show().finally(()=>{
-        adsShownBeforeClaim++;
-        setTimeout(showAdSequentially, 3000); // small delay between ads
-      });
-    }catch(e){
-      adsShownBeforeClaim++;
-      setTimeout(showAdSequentially, 3000);
-    }
-  }
-
-  showAdSequentially();
+      rewardAd.show();
+    }catch(e){}
+    adsShownBeforeClaim++;
+  },30000); // every 30 sec
 }
 
 function stopScratch(){ scratching = false; }
@@ -210,7 +205,13 @@ function scratch(e){
   const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
   const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
 
-  ctx.clearRect(x-15, y-15, 30, 30);
+  // clear a circular area around touch/mouse to simulate scratch
+  const radius = 15;
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, 2*Math.PI);
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
 
   scratchCount++;
 }
@@ -226,14 +227,12 @@ canvas.addEventListener("touchmove", scratch);
 claimBtn.addEventListener("click", ()=>{
   if(!claimAvailable) return;
 
-  // Add points
   points += 3000;
   saveState();
   updateUI();
 
   rewardCooldown = true;
 
-  // FULL RESET
   resetScratch();
 
   setTimeout(()=>{ rewardCooldown = false; },2000);
@@ -243,16 +242,14 @@ function resetScratch(){
   scratchCount = 0;
   claimAvailable = false;
   scratchTimerStarted = false;
-  adsShownBeforeClaim = 0; // reset ads counter
+  adsShownBeforeClaim = 0;
 
   claimBtn.classList.add("hidden");
-
   scratchMsg.innerText = "🖐️ Start scratching...";
 
-  // Re-cover canvas completely
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle = "#888";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
 /* LOAD */
