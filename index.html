@@ -115,15 +115,10 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
 
 <script>
 const webApp = Telegram.WebApp;
-
 let points = parseInt(localStorage.getItem("points") || "0");
 
-function updateUI(){
-  document.getElementById("points").innerText = points;
-}
-function saveState(){
-  localStorage.setItem("points", points);
-}
+function updateUI(){ document.getElementById("points").innerText = points; }
+function saveState(){ localStorage.setItem("points", points); }
 
 /* JOIN */
 function joinChannelClicked(){
@@ -132,7 +127,6 @@ function joinChannelClicked(){
   document.getElementById("mainPage").style.display="block";
 }
 
-/* Show Ad before Join */
 function showJoinPopupAfterAds(){
   try{
     const rewardAd = window.Adsgram.init({blockId:"23731"});
@@ -175,14 +169,15 @@ canvas.addEventListener("touchmove", scratch);
 let adShown = [false,false,false];
 const claimBtn = document.getElementById("claimBtn");
 
+// --- SCRATCH CHECKPOINTS SHOW REAL REWARD BLOCKS ---
 function handleScratchProgress(){
   if(scratchProgress >= 3 && !adShown[0]){
     adShown[0] = true;
-    showInlineAd(21545);
+    showScratchAd(23745); // <-- Reward block ID for scratch checkpoint
   }
   if(scratchProgress >= 20 && !adShown[1]){
     adShown[1] = true;
-    showInlineAd(21546);
+    showScratchAd(23746); // <-- Reward block ID for scratch checkpoint
   }
   if(scratchProgress >= 60 && !adShown[2]){
     adShown[2] = true;
@@ -191,27 +186,29 @@ function handleScratchProgress(){
   }
 }
 
-// Inline Adsgram display
-function showInlineAd(blockId){
+// Show Adsgram reward block inline during scratch
+function showScratchAd(blockId){
   const container = document.getElementById("scratchSection");
   if(container.querySelector(`adsgram-task[data-block-id="${blockId}"]`)) return;
+
   const adBlock = document.createElement("adsgram-task");
   adBlock.setAttribute("data-block-id", blockId);
   adBlock.style.width = "100%";
   adBlock.style.marginTop = "10px";
   container.appendChild(adBlock);
 
-  adBlock.addEventListener("reward", (e) => {
-    points += 100; // reward for this ad
+  adBlock.addEventListener("reward", e=>{
+    points += 100; // optional small reward for watching ad
     saveState();
     updateUI();
   });
 }
 
-claimBtn.addEventListener("click",()=>{
+// Claim button adds 3000 points
+claimBtn.addEventListener("click", ()=>{
   claimBtn.classList.add("hidden");
   try{
-    const rewardAd = window.Adsgram.init({blockId: 23732});
+    const rewardAd = window.Adsgram.init({blockId: 23732}); // final scratch reward ad
     rewardAd.show().then(res=>{
       if(res.done){
         points += 3000;
