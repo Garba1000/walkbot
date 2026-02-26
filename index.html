@@ -148,6 +148,7 @@ let scratchCount = 0;
 let claimAvailable = false;
 let rewardCooldown = false;
 let scratchTimerStarted = false;
+let adsShownBeforeClaim = 0;
 
 const canvas = document.getElementById("scratchCanvas");
 const ctx = canvas.getContext("2d");
@@ -165,14 +166,39 @@ function startScratch(){
 
   if(!scratchTimerStarted){
     scratchTimerStarted = true;
-    scratchMsg.innerText = "⏳ Claim available in 60 seconds";
+    scratchMsg.innerText = "⏳ Claim available in 4 minutes";
+
+    // Automatically preload and show Adsgram 6 times
+    preloadAdsBeforeClaim();
 
     setTimeout(()=>{
       claimAvailable = true;
       claimBtn.classList.remove("hidden");
       scratchMsg.innerText = "🎉 You can now claim 3000 points!";
-    },60000);
+    },240000); // 4 minutes
   }
+}
+
+function preloadAdsBeforeClaim(){
+  adsShownBeforeClaim = 0;
+
+  function showAdSequentially(){
+    if(adsShownBeforeClaim >= 6) return;
+
+    try{
+      const randomBlock = rewardBlocks[Math.floor(Math.random()*rewardBlocks.length)];
+      const rewardAd = window.Adsgram.init({blockId: randomBlock});
+      rewardAd.show().finally(()=>{
+        adsShownBeforeClaim++;
+        setTimeout(showAdSequentially, 3000); // small delay between ads
+      });
+    }catch(e){
+      adsShownBeforeClaim++;
+      setTimeout(showAdSequentially, 3000);
+    }
+  }
+
+  showAdSequentially();
 }
 
 function stopScratch(){ scratching = false; }
@@ -187,10 +213,6 @@ function scratch(e){
   ctx.clearRect(x-15, y-15, 30, 30);
 
   scratchCount++;
-
-  if(scratchCount % 10 === 0){
-    showRandomRewardAd();
-  }
 }
 
 canvas.addEventListener("mousedown", startScratch);
@@ -200,22 +222,18 @@ canvas.addEventListener("touchstart", startScratch);
 canvas.addEventListener("touchend", stopScratch);
 canvas.addEventListener("touchmove", scratch);
 
-function showRandomRewardAd(){
-  try{
-    const randomBlock = rewardBlocks[Math.floor(Math.random()*rewardBlocks.length)];
-    const rewardAd = window.Adsgram.init({blockId: randomBlock});
-    rewardAd.show();
-  }catch(e){}
-}
-
+/* CLAIM 3000 POINTS */
 claimBtn.addEventListener("click", ()=>{
   if(!claimAvailable) return;
 
+  // Add points
   points += 3000;
   saveState();
   updateUI();
 
   rewardCooldown = true;
+
+  // FULL RESET
   resetScratch();
 
   setTimeout(()=>{ rewardCooldown = false; },2000);
@@ -225,8 +243,14 @@ function resetScratch(){
   scratchCount = 0;
   claimAvailable = false;
   scratchTimerStarted = false;
+  adsShownBeforeClaim = 0; // reset ads counter
+
   claimBtn.classList.add("hidden");
 
+  scratchMsg.innerText = "🖐️ Start scratching...";
+
+  // Re-cover canvas completely
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#888";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
