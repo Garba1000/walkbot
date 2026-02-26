@@ -135,7 +135,7 @@ function joinChannelClicked(){
 /* Show Ad before Join */
 function showJoinPopupAfterAds(){
   try{
-    const rewardAd = window.Adsgram.init({blockId:"21545"});
+    const rewardAd = window.Adsgram.init({blockId:"23731"});
     rewardAd.show().finally(()=>{
       document.getElementById("joinPopup").style.display="flex";
     });
@@ -196,7 +196,7 @@ function handleScratchProgress(){
 claimBtn.addEventListener("click",()=>{
   claimBtn.classList.add("hidden");
   try{
-    const rewardAd = window.Adsgram.init({blockId: 21547});
+    const rewardAd = window.Adsgram.init({blockId: 23732});
     rewardAd.show().then(res=>{
       if(res.done){
         points += 3000;
@@ -265,7 +265,7 @@ document.getElementById("nextTaskBtn").addEventListener("click",()=>{
 
 document.getElementById("finalTaskBtn").addEventListener("click",()=>{
   try{
-    const rewardAd=window.Adsgram.init({blockId:"23578"});
+    const rewardAd=window.Adsgram.init({blockId:"23734"});
     rewardAd.show().then(res=>{
       if(res.done){
         points += 100; // reward 100 points for final task
