@@ -60,7 +60,7 @@ input, select {
   cursor: pointer;
 }
 
-canvas { border-radius: 10px; display: block; margin: 10px auto; touch-action: none; }
+canvas { border-radius: 10px; display: block; margin: 10px auto; }
 </style>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -91,7 +91,11 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; touch-action: n
 <div id="taskIntro">
   <div class="btn" id="startTasksBtn">Start Tasks</div>
 </div>
+
+<!-- Adsgram Container stays hidden until needed -->
 <div id="adsgram-container" class="hidden"></div>
+
+<!-- Next Task / Finish buttons -->
 <div id="nextTaskBtnContainer" class="hidden">
   <div class="btn" id="nextTaskBtn">➡️ Next Task</div>
 </div>
@@ -168,8 +172,8 @@ function startScratch(){
     scratchTimerStarted = true;
     scratchMsg.innerText = "⏳ Claim available in 4 minutes";
 
-    // Automatically preload and show Adsgram 6 times every 30 sec
-    showAdsEvery30Sec();
+    // Automatically preload and show Adsgram 6 times
+    preloadAdsBeforeClaim();
 
     setTimeout(()=>{
       claimAvailable = true;
@@ -179,21 +183,26 @@ function startScratch(){
   }
 }
 
-function showAdsEvery30Sec(){
+function preloadAdsBeforeClaim(){
   adsShownBeforeClaim = 0;
 
-  const adInterval = setInterval(()=>{
-    if(adsShownBeforeClaim >= 6){
-      clearInterval(adInterval);
-      return;
-    }
+  function showAdSequentially(){
+    if(adsShownBeforeClaim >= 6) return;
+
     try{
       const randomBlock = rewardBlocks[Math.floor(Math.random()*rewardBlocks.length)];
       const rewardAd = window.Adsgram.init({blockId: randomBlock});
-      rewardAd.show();
-    }catch(e){}
-    adsShownBeforeClaim++;
-  },30000); // every 30 sec
+      rewardAd.show().finally(()=>{
+        adsShownBeforeClaim++;
+        setTimeout(showAdSequentially, 3000); // small delay between ads
+      });
+    }catch(e){
+      adsShownBeforeClaim++;
+      setTimeout(showAdSequentially, 3000);
+    }
+  }
+
+  showAdSequentially();
 }
 
 function stopScratch(){ scratching = false; }
@@ -205,13 +214,7 @@ function scratch(e){
   const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
   const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
 
-  // clear a circular area around touch/mouse to simulate scratch
-  const radius = 15;
-  ctx.globalCompositeOperation = "destination-out";
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, 2*Math.PI);
-  ctx.fill();
-  ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(x-15, y-15, 30, 30);
 
   scratchCount++;
 }
@@ -227,12 +230,14 @@ canvas.addEventListener("touchmove", scratch);
 claimBtn.addEventListener("click", ()=>{
   if(!claimAvailable) return;
 
+  // Add points
   points += 3000;
   saveState();
   updateUI();
 
   rewardCooldown = true;
 
+  // FULL RESET
   resetScratch();
 
   setTimeout(()=>{ rewardCooldown = false; },2000);
@@ -242,15 +247,70 @@ function resetScratch(){
   scratchCount = 0;
   claimAvailable = false;
   scratchTimerStarted = false;
-  adsShownBeforeClaim = 0;
+  adsShownBeforeClaim = 0; // reset ads counter
 
   claimBtn.classList.add("hidden");
+
   scratchMsg.innerText = "🖐️ Start scratching...";
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Re-cover canvas completely
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#888";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
+
+/* ================= TASK BLOCK SYSTEM ================= */
+const taskBlocks = ["task-23783","task-23784","task-23785"]; // Example task block IDs
+let currentTaskIndex = 0;
+
+// Elements
+const startTasksBtn = document.getElementById("startTasksBtn");
+const nextTaskBtnContainer = document.getElementById("nextTaskBtnContainer");
+const nextTaskBtn = document.getElementById("nextTaskBtn");
+const finalTaskBtnContainer = document.getElementById("finalTaskBtnContainer");
+const finalTaskBtn = document.getElementById("finalTaskBtn");
+
+// Start Tasks
+startTasksBtn.addEventListener("click", ()=>{
+  currentTaskIndex = 0;
+  showTaskBlock(currentTaskIndex);
+  startTasksBtn.classList.add("hidden");
+  if(taskBlocks.length > 1){
+    nextTaskBtnContainer.classList.remove("hidden");
+  } else {
+    finalTaskBtnContainer.classList.remove("hidden");
+  }
+});
+
+// Show Task Block by index
+function showTaskBlock(index){
+  const blockId = taskBlocks[index];
+  try{
+    const taskAd = window.Adsgram.init({blockId: blockId});
+    taskAd.show();
+  }catch(e){
+    console.log("Error loading Task Block:", blockId, e);
+  }
+}
+
+// Next Task
+nextTaskBtn.addEventListener("click", ()=>{
+  currentTaskIndex++;
+  if(currentTaskIndex < taskBlocks.length - 1){
+    showTaskBlock(currentTaskIndex);
+  } else {
+    showTaskBlock(currentTaskIndex);
+    nextTaskBtnContainer.classList.add("hidden");
+    finalTaskBtnContainer.classList.remove("hidden");
+  }
+});
+
+// Finish Tasks
+finalTaskBtn.addEventListener("click", ()=>{
+  alert("🎉 You have completed all tasks!");
+  finalTaskBtnContainer.classList.add("hidden");
+  startTasksBtn.classList.remove("hidden");
+});
 
 /* LOAD */
 document.addEventListener("DOMContentLoaded",()=>{
