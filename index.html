@@ -15,8 +15,6 @@ body {
 }
 h1, h2 { margin-bottom: 10px; }
 .section { margin-top: 20px; padding: 15px; background: #111; border-radius: 10px; }
-
-/* ✅ ALL BUTTONS GREEN */
 .btn {
   display: inline-block;
   margin-top: 10px;
@@ -30,11 +28,9 @@ h1, h2 { margin-bottom: 10px; }
 }
 .btn:active { transform: scale(0.95); }
 .hidden { display: none; }
-
 input, select {
   padding: 8px; margin: 5px 0; width: 100%; border-radius: 5px; border: none;
 }
-
 #joinPopup {
   position: fixed;
   top: 0; left: 0;
@@ -59,7 +55,6 @@ input, select {
   font-size: 18px;
   cursor: pointer;
 }
-
 canvas { border-radius: 10px; display: block; margin: 10px auto; }
 </style>
 
@@ -78,7 +73,7 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
 <div id="mainPage" style="display:none;">
 
 <h1>⚡ Scratch & Earn Points</h1>
-<p>Points: <span id="points">0</span></p>
+<p>Points: <span id="points">0</span> | Energy: <span id="energy">50</span></p>
 
 <div class="section">
   <canvas id="scratchCanvas" width="300" height="200"></canvas>
@@ -91,11 +86,7 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
 <div id="taskIntro">
   <div class="btn" id="startTasksBtn">Start Tasks</div>
 </div>
-
-<!-- Adsgram Container stays hidden until needed -->
 <div id="adsgram-container" class="hidden"></div>
-
-<!-- Next Task / Finish buttons -->
 <div id="nextTaskBtnContainer" class="hidden">
   <div class="btn" id="nextTaskBtn">➡️ Next Task</div>
 </div>
@@ -123,9 +114,16 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
 <script>
 const webApp = Telegram.WebApp;
 let points = parseInt(localStorage.getItem("points") || "0");
+let energy = parseInt(localStorage.getItem("energy") || "50");
 
-function updateUI(){ document.getElementById("points").innerText = points; }
-function saveState(){ localStorage.setItem("points", points); }
+function updateUI(){
+  document.getElementById("points").innerText = points;
+  document.getElementById("energy").innerText = energy;
+}
+function saveState(){
+  localStorage.setItem("points", points);
+  localStorage.setItem("energy", energy);
+}
 
 /* JOIN */
 function joinChannelClicked(){
@@ -146,7 +144,6 @@ function showJoinPopupAfterAds(){
 }
 
 /* ================= SCRATCH SYSTEM ================= */
-
 const rewardBlocks = ["23731","23732","23734"];
 let scratchCount = 0;
 let claimAvailable = false;
@@ -185,23 +182,20 @@ function startScratch(){
 
 function preloadAdsBeforeClaim(){
   adsShownBeforeClaim = 0;
-
   function showAdSequentially(){
     if(adsShownBeforeClaim >= 6) return;
-
     try{
       const randomBlock = rewardBlocks[Math.floor(Math.random()*rewardBlocks.length)];
       const rewardAd = window.Adsgram.init({blockId: randomBlock});
       rewardAd.show().finally(()=>{
         adsShownBeforeClaim++;
-        setTimeout(showAdSequentially, 3000); // small delay between ads
+        setTimeout(showAdSequentially, 3000);
       });
     }catch(e){
       adsShownBeforeClaim++;
       setTimeout(showAdSequentially, 3000);
     }
   }
-
   showAdSequentially();
 }
 
@@ -209,13 +203,10 @@ function stopScratch(){ scratching = false; }
 
 function scratch(e){
   if(!scratching || rewardCooldown) return;
-
   const rect = canvas.getBoundingClientRect();
   const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
   const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-
   ctx.clearRect(x-15, y-15, 30, 30);
-
   scratchCount++;
 }
 
@@ -226,90 +217,130 @@ canvas.addEventListener("touchstart", startScratch);
 canvas.addEventListener("touchend", stopScratch);
 canvas.addEventListener("touchmove", scratch);
 
-/* CLAIM 3000 POINTS */
+/* ================= CLAIM 3000 WITH RANDOM TASK-BLOCK ================= */
+const scratchClaimTasks = ["task-23783","task-23784","task-23785","task-23786","task-23787"];
+
 claimBtn.addEventListener("click", ()=>{
   if(!claimAvailable) return;
 
-  // Add points
-  points += 3000;
-  saveState();
-  updateUI();
+  // Pick random task-block for claim
+  const randomTaskId = scratchClaimTasks[Math.floor(Math.random()*scratchClaimTasks.length)];
+  const container = document.getElementById("adsgram-container");
+  container.innerHTML = `<adsgram-task class="task" data-block-id="${randomTaskId}"></adsgram-task>`;
+  container.classList.remove("hidden");
+  claimBtn.classList.add("hidden"); // hide claim until task complete
 
-  rewardCooldown = true;
+  const task = container.querySelector(".task");
+  task.addEventListener("reward",()=>{
+    points += 3000;  // reward 3000 points
+    saveState();
+    updateUI();
 
-  // FULL RESET
-  resetScratch();
-
-  setTimeout(()=>{ rewardCooldown = false; },2000);
+    // Reset scratch system after claim
+    resetScratch();
+    container.classList.add("hidden");
+    scratchMsg.innerText = "🖐️ Start scratching...";
+    rewardCooldown = false;
+  });
 });
 
 function resetScratch(){
   scratchCount = 0;
   claimAvailable = false;
   scratchTimerStarted = false;
-  adsShownBeforeClaim = 0; // reset ads counter
-
+  adsShownBeforeClaim = 0;
   claimBtn.classList.add("hidden");
-
   scratchMsg.innerText = "🖐️ Start scratching...";
-
-  // Re-cover canvas completely
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#888";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#888";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-/* ================= TASK BLOCK SYSTEM ================= */
-const taskBlocks = ["task-23783","task-23784","task-23785"]; // Example task block IDs
-let currentTaskIndex = 0;
+/* ================= TASK SYSTEM ================= */
+let currentTaskIndex=0;
+const taskIds=["task-23783","task-23784","task-23785","task-23786","task-23787"];
 
-// Elements
-const startTasksBtn = document.getElementById("startTasksBtn");
-const nextTaskBtnContainer = document.getElementById("nextTaskBtnContainer");
-const nextTaskBtn = document.getElementById("nextTaskBtn");
-const finalTaskBtnContainer = document.getElementById("finalTaskBtnContainer");
-const finalTaskBtn = document.getElementById("finalTaskBtn");
+function loadTask(blockId){
+  const container=document.getElementById("adsgram-container");
+  container.innerHTML=`<adsgram-task class="task" data-block-id="${blockId}"></adsgram-task>`;
+  container.classList.remove("hidden");
+  document.getElementById("taskIntro").classList.add("hidden");
 
-// Start Tasks
-startTasksBtn.addEventListener("click", ()=>{
-  currentTaskIndex = 0;
-  showTaskBlock(currentTaskIndex);
-  startTasksBtn.classList.add("hidden");
-  if(taskBlocks.length > 1){
-    nextTaskBtnContainer.classList.remove("hidden");
-  } else {
-    finalTaskBtnContainer.classList.remove("hidden");
-  }
+  const task=container.querySelector(".task");
+  task.addEventListener("reward",(e)=>{
+    energy += 2; // reward ONLY energy
+    saveState();
+    updateUI();
+
+    if(currentTaskIndex<taskIds.length-1){
+      document.getElementById("nextTaskBtnContainer").classList.remove("hidden");
+    }else{
+      document.getElementById("finalTaskBtnContainer").classList.remove("hidden");
+    }
+  });
+}
+
+document.getElementById("startTasksBtn").addEventListener("click",()=>{
+  currentTaskIndex=0;
+  loadTask(taskIds[currentTaskIndex]);
 });
 
-// Show Task Block by index
-function showTaskBlock(index){
-  const blockId = taskBlocks[index];
-  try{
-    const taskAd = window.Adsgram.init({blockId: blockId});
-    taskAd.show();
-  }catch(e){
-    console.log("Error loading Task Block:", blockId, e);
-  }
-}
-
-// Next Task
-nextTaskBtn.addEventListener("click", ()=>{
+document.getElementById("nextTaskBtn").addEventListener("click",()=>{
   currentTaskIndex++;
-  if(currentTaskIndex < taskBlocks.length - 1){
-    showTaskBlock(currentTaskIndex);
-  } else {
-    showTaskBlock(currentTaskIndex);
-    nextTaskBtnContainer.classList.add("hidden");
-    finalTaskBtnContainer.classList.remove("hidden");
+  document.getElementById("nextTaskBtnContainer").classList.add("hidden");
+  loadTask(taskIds[currentTaskIndex]);
+});
+
+document.getElementById("finalTaskBtn").addEventListener("click",()=>{
+  try{
+    const rewardAd=window.Adsgram.init({blockId:"23731"}); // optional final ad
+    rewardAd.show().then(res=>{
+      if(res.done){
+        energy+=2;
+        saveState();
+        updateUI();
+      }
+      document.getElementById("taskIntro").classList.remove("hidden");
+      document.getElementById("adsgram-container").classList.add("hidden");
+      document.getElementById("finalTaskBtnContainer").classList.add("hidden");
+      currentTaskIndex=0;
+    });
+  }catch(e){
+    document.getElementById("taskIntro").classList.remove("hidden");
+    document.getElementById("adsgram-container").classList.add("hidden");
+    document.getElementById("finalTaskBtnContainer").classList.add("hidden");
+    currentTaskIndex=0;
   }
 });
 
-// Finish Tasks
-finalTaskBtn.addEventListener("click", ()=>{
-  alert("🎉 You have completed all tasks!");
-  finalTaskBtnContainer.classList.add("hidden");
-  startTasksBtn.classList.remove("hidden");
+/* ================= WITHDRAW ================= */
+document.getElementById("withdrawBtn").addEventListener("click",()=>{
+  const method=document.getElementById("method").value;
+  const address=document.getElementById("address").value.trim();
+  const amount=parseInt(document.getElementById("amount").value);
+
+  if(isNaN(amount)||amount<250000){
+    alert("Minimum withdrawal is 250,000 points");
+    return;
+  }
+  if(points<amount){
+    alert("Not enough points");
+    return;
+  }
+
+  const user=webApp.initDataUnsafe.user||{};
+  const msg=JSON.stringify({
+    type:"withdraw_request",
+    user_id:user.id,
+    username:user.username||"No username",
+    amount,method,address
+  });
+  Telegram.WebApp.sendData(msg);
+
+  points-=amount;
+  saveState();
+  updateUI();
+  alert("✅ Withdrawal request sent!");
 });
 
 /* LOAD */
