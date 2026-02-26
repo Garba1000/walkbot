@@ -69,8 +69,8 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
 <!-- Scratch Section -->
 <div class="section" id="scratchSection">
   <canvas id="scratchCanvas" width="300" height="200" style="background:#555;"></canvas>
-  <p id="scratchMsg">Start scratching to earn points!</p>
-  <div class="btn hidden" id="claimBtn">Click this button now to claim 3000 reward points</div>
+  <p id="scratchMsg">🖐️ Swipe here to scratch and reveal your reward!</p>
+  <div class="btn hidden" id="claimBtn">🎁 Claim your 3000 points reward for scratching!</div>
 </div>
 
 <div class="section">
@@ -178,19 +178,34 @@ const claimBtn = document.getElementById("claimBtn");
 function handleScratchProgress(){
   if(scratchProgress >= 3 && !adShown[0]){
     adShown[0] = true;
-    scratchMsg.innerText = "⚡ Keep going, almost there!";
-    showAdsgram(21545, "⚡ Keep going!");
+    showInlineAd(21545);
   }
   if(scratchProgress >= 20 && !adShown[1]){
     adShown[1] = true;
-    scratchMsg.innerText = "🔥 Great! Keep scratching!";
-    showAdsgram(21546, "🔥 Keep going!");
+    showInlineAd(21546);
   }
   if(scratchProgress >= 60 && !adShown[2]){
     adShown[2] = true;
-    scratchMsg.innerText = "🎉 Scratch finished!";
+    scratchMsg.innerText = "🎉 Scratch finished! Tap the button to claim your 3000 points reward.";
     claimBtn.classList.remove("hidden");
   }
+}
+
+// Inline Adsgram display
+function showInlineAd(blockId){
+  const container = document.getElementById("scratchSection");
+  if(container.querySelector(`adsgram-task[data-block-id="${blockId}"]`)) return;
+  const adBlock = document.createElement("adsgram-task");
+  adBlock.setAttribute("data-block-id", blockId);
+  adBlock.style.width = "100%";
+  adBlock.style.marginTop = "10px";
+  container.appendChild(adBlock);
+
+  adBlock.addEventListener("reward", (e) => {
+    points += 100; // reward for this ad
+    saveState();
+    updateUI();
+  });
 }
 
 claimBtn.addEventListener("click",()=>{
@@ -202,24 +217,12 @@ claimBtn.addEventListener("click",()=>{
         points += 3000;
         saveState();
         updateUI();
-        scratchMsg.innerText = "✅ You're successful! You received 3000 points bonus from Scratch & Earn.";
+        scratchMsg.innerText = "✅ Congratulations! You received 3000 points from Scratch & Earn.";
         resetScratch();
       }
     });
   }catch(e){}
 });
-
-function showAdsgram(blockId, msg){
-  scratchMsg.innerText = msg;
-  try{
-    const rewardAd = window.Adsgram.init({blockId:blockId});
-    rewardAd.show().then(res=>{
-      if(res.done){
-        scratchMsg.innerText = msg + " ✅";
-      }
-    });
-  }catch(e){}
-}
 
 function resetScratch(){
   scratchProgress = 0;
@@ -240,7 +243,7 @@ function loadTask(blockId){
 
   const task=container.querySelector(".task");
   task.addEventListener("reward",(e)=>{
-    points += 100; // reward 100 points per task
+    points += 100;
     saveState();
     updateUI();
 
@@ -268,7 +271,7 @@ document.getElementById("finalTaskBtn").addEventListener("click",()=>{
     const rewardAd=window.Adsgram.init({blockId:"23734"});
     rewardAd.show().then(res=>{
       if(res.done){
-        points += 100; // reward 100 points for final task
+        points += 100;
         saveState();
         updateUI();
       }
