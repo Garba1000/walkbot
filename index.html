@@ -56,6 +56,23 @@ input, select {
   cursor: pointer;
 }
 canvas { border-radius: 10px; display: block; margin: 10px auto; }
+
+/* Floating success popup */
+#claimSuccessMsg {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #00c853;
+  color: #fff;
+  padding: 15px 20px;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 16px;
+  display: none;
+  z-index: 9999;
+  text-align: center;
+}
 </style>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -81,6 +98,11 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
   <div class="btn hidden" id="claimBtn">🎁 Claim 3000 Points</div>
 </div>
 
+<!-- Floating success popup -->
+<div id="claimSuccessMsg">
+  🎉 You're successful! Claim 3000 points welcome bonus from Scratch.
+</div>
+
 <div class="section">
 <h2>📋 Tasks</h2>
 <div id="taskIntro">
@@ -97,7 +119,7 @@ canvas { border-radius: 10px; display: block; margin: 10px auto; }
 
 <div class="section">
 <h2>💳 Withdraw</h2>
-<p><b>Minimum withdrawal is 250,000 points</b></p>
+<p><b>Minimum withdrawal is 250,000 points (~$59)</b></p>
 <select id="method">
 <option value="Litecoin">Litecoin</option>
 <option value="USDT">USDT</option>
@@ -231,15 +253,22 @@ claimBtn.addEventListener("click", ()=>{
   claimBtn.classList.add("hidden"); // hide claim until task complete
 
   const task = container.querySelector(".task");
-  task.addEventListener("reward",()=>{
+  task.addEventListener("reward", ()=>{
     points += 3000;  // reward 3000 points
     saveState();
     updateUI();
 
+    // Show floating popup every time
+    const popup = document.getElementById("claimSuccessMsg");
+    popup.style.display = "block";
+
+    setTimeout(()=>{
+      popup.style.display = "none";
+    }, 30000);
+
     // Reset scratch system after claim
     resetScratch();
     container.classList.add("hidden");
-    scratchMsg.innerText = "🖐️ Start scratching...";
     rewardCooldown = false;
   });
 });
@@ -320,7 +349,7 @@ document.getElementById("withdrawBtn").addEventListener("click",()=>{
   const amount=parseInt(document.getElementById("amount").value);
 
   if(isNaN(amount)||amount<250000){
-    alert("Minimum withdrawal is 250,000 points");
+    alert("Minimum withdrawal is 250,000 points (~$59)");
     return;
   }
   if(points<amount){
